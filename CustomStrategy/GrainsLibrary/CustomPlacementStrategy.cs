@@ -37,75 +37,25 @@ namespace GrainsLibrary
 
     class CustomActivationDirector : IPlacementDirector<CountBasedPlacementStrategy>
     {
-        static ConcurrentDictionary<SiloAddress, int> siloCache = new ConcurrentDictionary<SiloAddress, int>();
+        static ConcurrentQueue<SiloAddress> siloQueue = new ConcurrentQueue<SiloAddress>();
 
-        //TODO: get rid of dead activations. Somehow.
         public virtual Task<SiloAddress> OnAddActivation(
             PlacementStrategy strategy, PlacementTarget target, IPlacementContext context)
         {
-            var allSilos = context.GetCompatibleSilos(target);
-            var incompatibleSilos = new List<SiloAddress>();
+            if (siloQueue.Count == 0)
+                siloQueue = new ConcurrentQueue<SiloAddress>(context.GetCompatibleSilos(target));
 
-            SiloAddress leastLoadedSilo = GetLeastLoadedCompatibleSilo(allSilos, incompatibleSilos);
-
-            //Remove incompatible silos
-            int value = 0;
-            foreach (var silo in incompatibleSilos)
-                siloCache.TryRemove(silo, out value);
-
-            UpdateCache(leastLoadedSilo);            
-
-            return Task.FromResult(leastLoadedSilo);
-        }
-
-        /// <summary>
-        /// Calculates least loaded silo and checks cache for compatibility
-        /// </summary>
-        /// <param name="allSilos"></param>
-        /// <param name="incompatibleSilos"></param>
-        /// <returns></returns>
-        SiloAddress GetLeastLoadedCompatibleSilo(IList<SiloAddress> allSilos, IList<SiloAddress> incompatibleSilos)
-        {
-            var min = int.MaxValue;
             SiloAddress leastLoadedSilo = null;
-            foreach (var silo in siloCache)
-            {
-                //If allSilos doesn't contain address from siloCache, it is incompatible
-                if (!allSilos.Contains(silo.Key))
-                {
-                    incompatibleSilos.Add(silo.Key);
-                }
-                else //looking for silo with minimum activations
-                {
-                    int activations = silo.Value;
-                    if (activations < min)
-                    {
-                        min = activations;
-                        leastLoadedSilo = silo.Key;
-                    }
-                }
-                //Here we are calculating the difference of two sets. 
-                allSilos.Remove(silo.Key);
-            }
-
-            //If at the end of the cycle allSilos contains items, 
-            //we still have unused silos and can mark one of them as a candidate for activation.
-            if (allSilos.Count > 0)
-                leastLoadedSilo = allSilos[0];
+            //Choose first silo in queue
+            siloQueue.TryDequeue(out leastLoadedSilo);
 
             if (leastLoadedSilo == null)
-                throw new OrleansException("No compatible grain");
+                throw new OrleansException("No compatible silo");
 
-            return leastLoadedSilo;
-        }
+            //and move it to end
+            siloQueue.Enqueue(leastLoadedSilo);
 
-        void UpdateCache(SiloAddress siloForActivation)
-        {
-            //get number of activations and increment it
-            int value = 0;
-            siloCache.TryGetValue(siloForActivation, out value);
-            value++;
-            siloCache.AddOrUpdate(siloForActivation, value, (oldkey, oldvalue) => value);
+            return Task.FromResult(leastLoadedSilo);
         }
     }
 }
