@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ClientConfiguration xmlns="urn:orleans">
+  <Gateway Address="localhost" Port="33001"/>
+  <Gateway Address="localhost" Port="33005"/>
+  <Gateway Address="localhost" Port="33003"/>
+  <!--<Gateway Address="localhost" Port="33002"/>
+  
+  <Gateway Address="localhost" Port="33004"/>-->
+  <!--<Gateway Address="localhost" Port="33003"/>-->
+</ClientConfiguration>
+

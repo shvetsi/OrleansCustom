@@ -1,0 +1,9 @@
+﻿<OrleansConfiguration xmlns="urn:orleans">
+  <Globals>
+    <SeedNode Address="localhost" Port="11111" />
+  </Globals>
+  <Defaults>
+    <Networking Address="localhost" Port="11113" />
+    <ProxyingGateway Address="localhost" Port="33003" />
+  </Defaults>
+</OrleansConfiguration>
